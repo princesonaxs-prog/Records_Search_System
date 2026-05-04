@@ -166,9 +166,7 @@ export default function App() {
     setSearchResults(results as any);
   }, [searchQuery, documents]);
 
-  const displayItems = searchQuery 
-    ? searchResults 
-    : (documents.length > 0 && !searchQuery ? [] : documents.map(d => ({ item: d, score: 0 })));
+  const displayItems = searchQuery ? searchResults : [];
 
   const [isDragging, setIsDragging] = useState(false);
 
@@ -179,6 +177,8 @@ export default function App() {
       handleFileUpload({ target: { files: e.dataTransfer.files } } as any);
     }
   }, [handleFileUpload]);
+
+  console.log('App Rendering - Docs:', documents.length, 'Query:', searchQuery);
 
   return (
     <div 
@@ -349,172 +349,171 @@ with open('index.json', 'w', encoding='utf-8') as f:
         </div>
       </nav>
 
-      {/* Main Content - Scrollable */}
-      <main className="flex-1 overflow-hidden">
-        <VirtuosoGrid
-          style={{ height: '100%' }}
-          data={displayItems}
-          totalCount={displayItems.length}
-          components={{
-            Header: () => (
-              <div className="max-w-7xl mx-auto px-6 py-12">
-                {/* Stats / Hero */}
-                <section className="mb-16 grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white/5 border border-white/10 p-8 rounded-2xl relative overflow-hidden group">
-                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                      <FileSearch size={120} />
-                    </div>
-                    <div className="relative">
-                      <p className="text-[10px] text-emerald-500 uppercase font-bold tracking-[0.2em] mb-2">Total Indexed</p>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-5xl font-light tracking-tighter tabular-nums">{documents.length}</span>
-                        <span className="text-gray-500 text-sm font-mono lowercase">docs</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/5 border border-white/10 p-8 rounded-2xl relative overflow-hidden group">
-                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                      <Hash size={120} />
-                    </div>
-                    <div className="relative">
-                      <p className="text-[10px] text-emerald-500 uppercase font-bold tracking-[0.2em] mb-2">OCR Confidence</p>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-5xl font-light tracking-tighter tabular-nums">98</span>
-                        <span className="text-gray-500 text-sm font-mono lowercase">percent</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/5 border border-white/10 p-8 rounded-2xl relative overflow-hidden group">
-                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                      <Clock size={120} />
-                    </div>
-                    <div className="relative">
-                      <p className="text-[10px] text-emerald-500 uppercase font-bold tracking-[0.2em] mb-2">Retrieval Speed</p>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-5xl font-light tracking-tighter tabular-nums">24</span>
-                        <span className="text-gray-500 text-sm font-mono lowercase">ms</span>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                {/* Status Messaging / Progress */}
-                <AnimatePresence mode="wait">
-                  {status === OCRStatus.PROCESSING && (
-                    <motion.div 
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mb-8 p-6 bg-emerald-500/10 border border-emerald-500/30 rounded-xl"
-                    >
-                      <div className="flex items-center gap-4 mb-4">
-                        <Loader2 className="animate-spin text-emerald-500" size={24} />
-                        <div>
-                          <p className="text-sm font-bold text-white uppercase tracking-wider">Processing Batch Archive</p>
-                          <p className="text-xs text-emerald-500/80">Digitizing handwritten legal scripts: {processingProgress}%</p>
-                        </div>
-                      </div>
-                      <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                        <motion.div 
-                          className="h-full bg-emerald-500" 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${processingProgress}%` }}
-                        />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Results Info */}
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-4 text-[10px] uppercase font-bold tracking-widest">
-                      <span className={searchQuery ? 'text-gray-500' : 'text-emerald-500 underline underline-offset-8'}>Local Database</span>
-                      {searchQuery && <span className="text-emerald-500 underline underline-offset-8">Matched Results</span>}
-                    </div>
-                    
-                    <div className="h-4 w-px bg-white/10" />
-                    
-                    <div className="flex items-center gap-3">
-                      <button onClick={exportDatabase} title="Export Database" className="p-1.5 text-gray-500 hover:text-white transition-colors">
-                        <Download size={14} />
-                      </button>
-                      <button onClick={clearAllData} title="Clear Database" className="p-1.5 text-gray-500 hover:text-red-500 transition-colors">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono uppercase">
-                    <LayoutGrid size={12} />
-                    Virtualized View
-                  </div>
-                </div>
-
-                {/* Empty States */}
-                {documents.length === 0 && (
-                  <div className="text-center py-32 border-2 border-dashed border-white/5 rounded-3xl">
-                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 text-gray-600">
-                      <Upload size={24} />
-                    </div>
-                    <h2 className="text-xl font-medium text-white mb-2 tracking-tight">No indexed documents yet.</h2>
-                    <p className="text-sm text-gray-500 max-w-xs mx-auto leading-relaxed">
-                      Upload your handwritten Arabic images to start building your searchable repository.
-                    </p>
-                  </div>
-                )}
-                
-                {documents.length > 0 && !searchQuery && (
-                  <div className="text-center py-32 border border-white/5 bg-white/[0.02] rounded-3xl">
-                    <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500">
-                      <SearchIcon size={24} />
-                    </div>
-                    <h2 className="text-xl font-medium text-white mb-2 tracking-tight">Archive Ready</h2>
-                    <p className="text-sm text-gray-500 max-w-xs mx-auto leading-relaxed">
-                      Your local database contains <span className="text-emerald-500 font-bold">{documents.length}</span> documents. 
-                      Enter a name or phrase in the search bar above to find specific records instantly.
-                    </p>
-                  </div>
-                )}
-
-                {searchQuery && searchResults.length === 0 && documents.length > 0 && (
-                  <div className="text-center py-20">
-                    <AlertCircle className="mx-auto mb-4 text-gray-700" size={40} />
-                    <p className="text-gray-500 italic text-sm">No exact or partial matches found for "{searchQuery}"</p>
-                  </div>
-                )}
+      {/* Scrollable Container */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          {/* Stats / Hero */}
+          <section className="mb-16 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <FileSearch size={120} />
               </div>
-            ),
-            Footer: () => (
-              <footer className="mt-24 border-t border-white/5 py-12 px-6 bg-[#0a0a0a]">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-                  <div className="flex gap-12 font-mono text-[9px] uppercase tracking-[0.2em] text-gray-600">
-                    <div>Engine: Gemini-3-Flash</div>
-                    <div>Mode: Retrieval-Fuzzy-OCR</div>
-                    <div>Status: Optimized for 5000+ Items</div>
-                  </div>
-                  <div className="text-right flex flex-col items-end">
-                    <div className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Architecture</div>
-                    <div className="text-[11px] text-gray-400 font-serif dir-rtl italic">نظام البحث في النصوص العربية اليدوية</div>
+              <div className="relative">
+                <p className="text-[10px] text-emerald-500 uppercase font-bold tracking-[0.2em] mb-2">Total Indexed</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-5xl font-light tracking-tighter tabular-nums">{documents.length}</span>
+                  <span className="text-gray-500 text-sm font-mono lowercase">docs</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <Hash size={120} />
+              </div>
+              <div className="relative">
+                <p className="text-[10px] text-emerald-500 uppercase font-bold tracking-[0.2em] mb-2">OCR Confidence</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-5xl font-light tracking-tighter tabular-nums">98</span>
+                  <span className="text-gray-500 text-sm font-mono lowercase">percent</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <Clock size={120} />
+              </div>
+              <div className="relative">
+                <p className="text-[10px] text-emerald-500 uppercase font-bold tracking-[0.2em] mb-2">Retrieval Speed</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-5xl font-light tracking-tighter tabular-nums">24</span>
+                  <span className="text-gray-500 text-sm font-mono lowercase">ms</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Status Messaging / Progress */}
+          <AnimatePresence mode="wait">
+            {status === OCRStatus.PROCESSING && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-8 p-6 bg-emerald-500/10 border border-emerald-500/30 rounded-xl"
+              >
+                <div className="flex items-center gap-4 mb-4">
+                  <Loader2 className="animate-spin text-emerald-500" size={24} />
+                  <div>
+                    <p className="text-sm font-bold text-white uppercase tracking-wider">Processing Batch Archive</p>
+                    <p className="text-xs text-emerald-500/80">Digitizing handwritten legal scripts: {processingProgress}%</p>
                   </div>
                 </div>
-              </footer>
-            )
-          }}
-          listClassName="max-w-7xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10 pb-20"
-          itemContent={(index, result: any) => (
-            <DocumentCard 
-              key={result.item.id} 
-              doc={result.item} 
-              score={searchQuery ? result.score : undefined} 
-              currentQuery={searchQuery}
-              onUpdate={updateDocumentText}
-              onDelete={removeDocument}
-            />
+                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                  <motion.div 
+                    className="h-full bg-emerald-500" 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${processingProgress}%` }}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Results Info Bar */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-4 text-[10px] uppercase font-bold tracking-widest">
+                <span className={searchQuery ? 'text-gray-500' : 'text-emerald-500 underline underline-offset-8'}>Local Database</span>
+                {searchQuery && <span className="text-emerald-500 underline underline-offset-8">Matched Results</span>}
+              </div>
+              
+              <div className="h-4 w-px bg-white/10" />
+              
+              <div className="flex items-center gap-3">
+                <button onClick={exportDatabase} title="Export Database" className="p-1.5 text-gray-500 hover:text-white transition-colors">
+                  <Download size={14} />
+                </button>
+                <button onClick={clearAllData} title="Clear Database" className="p-1.5 text-gray-500 hover:text-red-500 transition-colors">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono uppercase">
+              <LayoutGrid size={12} />
+              Virtualized View
+            </div>
+          </div>
+
+          {/* Empty States */}
+          {documents.length === 0 && (
+            <div className="text-center py-32 border-2 border-dashed border-white/5 rounded-3xl">
+              <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 text-gray-600">
+                <Upload size={24} />
+              </div>
+              <h2 className="text-xl font-medium text-white mb-2 tracking-tight">No indexed documents yet.</h2>
+              <p className="text-sm text-gray-500 max-w-xs mx-auto leading-relaxed">
+                Upload your handwritten Arabic images to start building your searchable repository.
+              </p>
+            </div>
           )}
-        />
+          
+          {documents.length > 0 && !searchQuery && (
+            <div className="text-center py-32 border border-white/5 bg-white/[0.02] rounded-3xl">
+              <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500">
+                <SearchIcon size={24} />
+              </div>
+              <h2 className="text-xl font-medium text-white mb-2 tracking-tight">Archive Ready</h2>
+              <p className="text-sm text-gray-500 max-w-xs mx-auto leading-relaxed">
+                Your local database contains <span className="text-emerald-500 font-bold">{documents.length}</span> documents. 
+                Enter a name or phrase in the search bar above to find specific records instantly.
+              </p>
+            </div>
+          )}
+
+          {searchQuery && searchResults.length === 0 && documents.length > 0 && (
+            <div className="text-center py-20">
+              <AlertCircle className="mx-auto mb-4 text-gray-700" size={40} />
+              <p className="text-gray-500 italic text-sm">No exact or partial matches found for "{searchQuery}"</p>
+            </div>
+          )}
+
+          {/* Results Grid - Virtuoso */}
+          <div className="h-[600px] w-full">
+            <VirtuosoGrid
+              style={{ height: '100%' }}
+              data={displayItems}
+              totalCount={displayItems.length}
+              listClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10 pb-20"
+              itemContent={(index, result: any) => (
+                <DocumentCard 
+                  key={result.item.id} 
+                  doc={result.item} 
+                  score={searchQuery ? result.score : undefined} 
+                  currentQuery={searchQuery}
+                  onUpdate={updateDocumentText}
+                  onDelete={removeDocument}
+                />
+              )}
+            />
+          </div>
+        </div>
+
+        <footer className="mt-24 border-t border-white/5 py-12 px-6 bg-[#0a0a0a]">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+            <div className="flex gap-12 font-mono text-[9px] uppercase tracking-[0.2em] text-gray-600">
+              <div>Engine: Gemini-3-Flash</div>
+              <div>Mode: Retrieval-Fuzzy-OCR</div>
+              <div>Status: Optimized for 5000+ Items</div>
+            </div>
+            <div className="text-right flex flex-col items-end">
+              <div className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Architecture</div>
+              <div className="text-[11px] text-gray-400 font-serif dir-rtl italic">نظام البحث في النصوص العربية اليدوية</div>
+            </div>
+          </div>
+        </footer>
       </main>
     </div>
   );

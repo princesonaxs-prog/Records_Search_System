@@ -6,13 +6,34 @@
 import { GoogleGenAI } from "@google/genai";
 import { createWorker } from 'tesseract.js';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const getApiKey = () => {
+  try {
+    // @ts-ignore
+    return process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || "";
+  } catch {
+    // @ts-ignore
+    return import.meta.env.VITE_GEMINI_API_KEY || "";
+  }
+};
+
+let ai: GoogleGenAI | null = null;
+const getAI = () => {
+  if (!ai) {
+    const key = getApiKey();
+    if (!key) {
+      console.warn("GEMINI_API_KEY is missing. Online OCR will fail.");
+    }
+    ai = new GoogleGenAI({ apiKey: key });
+  }
+  return ai;
+};
 
 /**
  * High-accuracy OCR using Gemini (Requires Internet)
  */
 export async function recognizeHandwrittenArabic(base64Image: string): Promise<string> {
   const model = "gemini-3-flash-preview";
+  const genAI = getAI();
   
   // Clean base64 string to get only the data part
   const data = base64Image.split(',')[1] || base64Image;
@@ -37,7 +58,7 @@ export async function recognizeHandwrittenArabic(base64Image: string): Promise<s
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await genAI.models.generateContent({
       model,
       contents: {
         parts: [
@@ -52,7 +73,8 @@ export async function recognizeHandwrittenArabic(base64Image: string): Promise<s
       },
     });
 
-    return response.text || "";
+    const result = await response.response;
+    return result.text() || "";
   } catch (error) {
     console.error("OCR Recognition Error:", error);
     throw new Error("Failed to recognize text in image.");
