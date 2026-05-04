@@ -61,10 +61,9 @@ export function DocumentCard({ doc, score, currentQuery, onUpdate, onDelete }: D
           </div>
         )}
         <button 
-          onClick={handleSave}
           className="absolute top-2 left-2 p-2 bg-black/50 hover:bg-red-500 hover:text-white text-white rounded-full backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"
           title="Delete Document"
-          onClickCapture={(e) => {
+          onClick={(e) => {
             e.stopPropagation();
             onDelete?.(doc.id);
           }}
