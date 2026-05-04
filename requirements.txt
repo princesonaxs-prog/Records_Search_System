@@ -1,0 +1,9 @@
+easyocr
+torch
+torchvision
+torchaudio
+opencv-python
+whoosh
+numpy
+tqdm
+python-magic
