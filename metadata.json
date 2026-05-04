@@ -1,0 +1,6 @@
+{
+  "name": "Arabic Scribe Search",
+  "description": "High-accuracy handwritten Arabic document search system using advanced Gemini-powered OCR and fuzzy-matching retrieval.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
