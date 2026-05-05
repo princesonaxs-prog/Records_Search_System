@@ -42,19 +42,21 @@ export async function recognizeHandwrittenArabic(base64Image: string): Promise<s
     Analyze this handwritten Arabic document. 
     Perform extremely high-accuracy Optical Character Recognition (OCR) for handwritten Arabic legal scripts.
     
-    CONTEXT: These are formal legal contracts, land sale agreements, or settlement documents (محضر اتفاق, عقد بيع, تنازل). 
-    They often include:
-    - Parties: (المقابل, المؤجر, المستأجر, البائع, المشتري)
-    - Names: Pay extreme attention to dots and tooth counting in names (e.g., عزي vs فوزي, عبيد vs عبد).
-    - Witness section: (الشهود, الشاهد, يوقع أدناه).
-    - Numbers: Often dates or land areas.
+    CONTEXT: These are formal legal documents from a family or court archive (محاضر, عقود, اتفاقيات). 
+    They are often written in old style handwriting with specific legal terminology.
     
-    CRITICAL INSTRUCTIONS:
-    1. Extract ALL text verbatim.
-    2. Pay extremely close attention to legal roles (e.g., المؤجر vs المذكور). Do NOT confuse them.
-    3. Maintain Right-to-Left reading order strictly.
-    4. Do not interpret or summarize, just provide the exact characters recognized.
-    5. Output ONLY the recognized Arabic text.
+    TARGET ENTITIES:
+    - Names: (e.g. احمد, محمد, فوزي, عزي, عبيد, صالح)
+    - Locations: (e.g. قرية, عزلة, مديرية, محافظة)
+    - Numbers: (e.g. 1345 هـ, 2024 م, مبالغ مالية)
+    - Relationships: (المقر, المذكور, الشهود)
+    
+    INSTRUCTIONS:
+    1. Extract ALL text exactly as written.
+    2. Maintain spatial layout and reading order (Right-to-Left).
+    3. Do NOT skip any words, even if they are faint.
+    4. Pay special attention to the difference between letters like (ف and ق) or (ن and ي).
+    5. Output ONLY the extracted Arabic text verbatim.
   `;
 
   try {
@@ -79,6 +81,26 @@ export async function recognizeHandwrittenArabic(base64Image: string): Promise<s
     console.error("OCR Recognition Error:", error);
     throw new Error("Failed to recognize text in image.");
   }
+}
+
+/**
+ * Wrapper for Drive integration to handle Blobs directly
+ */
+export async function performOCR(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64 = reader.result as string;
+        const text = await recognizeHandwrittenArabic(base64);
+        resolve(text);
+      } catch (e) {
+        reject(e);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
 
 /**

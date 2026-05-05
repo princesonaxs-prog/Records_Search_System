@@ -27,8 +27,9 @@ import { IndexedDocument, OCRStatus } from './types';
 import { recognizeHandwrittenArabic, recognizeArabicLocally } from './services/ocrService';
 import { searchDocuments } from './services/searchService';
 import { DocumentCard } from './components/DocumentCard';
-
-import { VirtuosoGrid } from 'react-virtuoso';
+import { DriveSyncPanel } from './components/DriveSyncPanel';
+import { useGoogleDrive } from './hooks/useGoogleDrive';
+import { driveService } from './services/driveService';
 
 export default function App() {
   const [documents, setDocuments] = useState<IndexedDocument[]>([]);
@@ -136,8 +137,19 @@ export default function App() {
       const updated = { ...doc, recognizedText: newText };
       await set(`doc-${id}`, updated);
       setDocuments(prev => prev.map(d => d.id === id ? updated : d));
+
+      // If connected to Drive, save the update back to the .txt file
+      if (accessToken && doc.metadata.fileName) {
+        try {
+          const baseName = doc.metadata.fileName.split('.').slice(0, -1).join('.');
+          await driveService.saveTranscription(accessToken, `${baseName}.txt`, newText);
+          console.log(`Saved update for ${baseName} to Drive`);
+        } catch (error) {
+          console.error("Failed to save update to Drive:", error);
+        }
+      }
     }
-  }, [documents]);
+  }, [documents, accessToken]);
 
   const removeDocument = useCallback(async (id: string) => {
     if (!confirm('Delete this document from local database?')) return;
@@ -161,14 +173,60 @@ export default function App() {
     a.click();
   };
 
+  // Search logic
   useEffect(() => {
     const results = searchDocuments(searchQuery, documents);
     setSearchResults(results as any);
   }, [searchQuery, documents]);
 
-  const displayItems = searchQuery ? searchResults : [];
+  const displayItems = searchQuery 
+    ? searchResults 
+    : documents.map(d => ({ item: d, score: 0 }));
 
   const [isDragging, setIsDragging] = useState(false);
+  const { accessToken } = useGoogleDrive();
+
+  // Load from Drive if connected
+  useEffect(() => {
+    const loadDriveFiles = async () => {
+      if (!accessToken) return;
+      try {
+        const { images, texts } = await driveService.listFiles(accessToken);
+        
+        const driveDocs: IndexedDocument[] = await Promise.all(images.map(async (img) => {
+          const baseName = img.name.split('.').slice(0, -1).join('.').toLowerCase();
+          const textId = texts.get(baseName);
+          let content = '';
+          if (textId) {
+            content = await driveService.getFileContent(accessToken, textId);
+          }
+          
+          return {
+            id: img.id,
+            base64: img.thumbnailLink?.replace('=s220', '=s800') || '',
+            originalUrl: img.webContentLink || '',
+            recognizedText: content || 'جاري استخراج النص...',
+            confidence: 0.95,
+            metadata: {
+              createdAt: Date.now(),
+              fileName: img.name,
+            }
+          };
+        }));
+        
+        setDocuments(prev => {
+          // Merge drive docs with local docs, avoiding duplicates by fileName
+          const localNames = new Set(prev.map(d => d.metadata.fileName));
+          const newDriveDocs = driveDocs.filter(d => !localNames.has(d.metadata.fileName));
+          return [...newDriveDocs, ...prev];
+        });
+      } catch (error) {
+        console.error("Drive Load Error:", error);
+      }
+    };
+
+    loadDriveFiles();
+  }, [accessToken]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -352,6 +410,20 @@ with open('index.json', 'w', encoding='utf-8') as f:
       {/* Scrollable Container */}
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto px-6 py-12">
+          
+          {/* Drive Integration & Ground Truth Factory */}
+          <DriveSyncPanel />
+
+          <div className="text-center mb-16">
+            <h1 className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tighter uppercase">
+              قلم <span className="text-emerald-500">الكاتب</span>
+            </h1>
+            <p className="text-gray-400 max-w-2xl mx-auto leading-relaxed">
+              هذا النظام مصمم لتحويل الأرشيف الورقي إلى بيانات رقمية دقيقة. 
+              يمكنك ربط حساب جوجل درايف (حتى لو كان حساباً آخر) لاستخراج النصوص آلياً وتخزينها كملفات نصية موازية للصور لتدريب نماذج الذكاء الاصطناعي.
+            </p>
+          </div>
+
           {/* Stats / Hero */}
           <section className="mb-16 grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white/5 border border-white/10 p-8 rounded-2xl relative overflow-hidden group">
@@ -480,14 +552,10 @@ with open('index.json', 'w', encoding='utf-8') as f:
             </div>
           )}
 
-          {/* Results Grid - Virtuoso */}
-          <div className="h-[600px] w-full">
-            <VirtuosoGrid
-              style={{ height: '100%' }}
-              data={displayItems}
-              totalCount={displayItems.length}
-              listClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10 pb-20"
-              itemContent={(index, result: any) => (
+          {/* Results Grid */}
+          <div className="w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10 pb-20">
+              {displayItems.map((result: any) => (
                 <DocumentCard 
                   key={result.item.id} 
                   doc={result.item} 
@@ -496,8 +564,8 @@ with open('index.json', 'w', encoding='utf-8') as f:
                   onUpdate={updateDocumentText}
                   onDelete={removeDocument}
                 />
-              )}
-            />
+              ))}
+            </div>
           </div>
         </div>
 

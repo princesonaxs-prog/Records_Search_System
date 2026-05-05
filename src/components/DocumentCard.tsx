@@ -28,7 +28,9 @@ export function DocumentCard({ doc, score, currentQuery, onUpdate, onDelete }: D
 
   const highlightMatch = (text: string, query: string) => {
     if (!query || query.length < 2) return text;
-    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    // Escape regex special characters
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const parts = text.split(new RegExp(`(${escapedQuery})`, 'gi'));
     return (
       <>
         {parts.map((part, i) => 

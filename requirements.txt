@@ -7,3 +7,7 @@ whoosh
 numpy
 tqdm
 python-magic
+google-generativeai
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
