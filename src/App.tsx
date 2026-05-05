@@ -32,6 +32,7 @@ import { useGoogleDrive } from './hooks/useGoogleDrive';
 import { driveService } from './services/driveService';
 
 export default function App() {
+  const { accessToken } = useGoogleDrive();
   const [documents, setDocuments] = useState<IndexedDocument[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [status, setStatus] = useState<OCRStatus>(OCRStatus.IDLE);
@@ -184,7 +185,6 @@ export default function App() {
     : documents.map(d => ({ item: d, score: 0 }));
 
   const [isDragging, setIsDragging] = useState(false);
-  const { accessToken } = useGoogleDrive();
 
   // Load from Drive if connected
   useEffect(() => {

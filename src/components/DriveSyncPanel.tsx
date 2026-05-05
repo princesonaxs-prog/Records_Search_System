@@ -88,13 +88,33 @@ export const DriveSyncPanel = () => {
         </div>
         
         {!isAuthenticated ? (
-          <button 
-            onClick={login}
-            className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 flex items-center gap-2"
-          >
-            <Database className="w-4 h-4" />
-            تسجيل الدخول بالحساب (Account B)
-          </button>
+          <div className="flex flex-col items-end gap-2">
+            <button 
+              onClick={login}
+              className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 flex items-center gap-2"
+            >
+              <Database className="w-4 h-4" />
+              تسجيل الدخول بالحساب (Account B)
+            </button>
+            <p className="text-[10px] text-gray-400 max-w-[200px] text-left leading-tight">
+              إذا ظهر خطأ <span className="text-red-400 font-bold">invalid_client</span>، يرجى إضافة رابط هذا الموقع إلى قائمة الـ Origins في منصة جوجل السحابية الخاصة بالحساب الثاني.
+            </p>
+            <div className="mt-2 flex flex-col gap-1">
+              <div className="text-[9px] bg-gray-50 border border-gray-100 p-2 rounded text-gray-400 font-mono break-all">
+                ID: {import.meta.env.VITE_GOOGLE_CLIENT_ID?.substring(0, 20)}...
+              </div>
+              <button 
+                onClick={() => {
+                  const url = window.location.origin;
+                  navigator.clipboard.writeText(url);
+                  alert(`تم نسخ الرابط:\n${url}\n\nقم بلصقه في Authorized JavaScript origins في Google Console.`);
+                }}
+                className="text-[9px] text-emerald-600 hover:underline text-left"
+              >
+                📋 نسخ هذا الرابط لـ Google Console
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="flex items-center gap-4">
              <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded">متصل الآن</span>
